@@ -1,0 +1,121 @@
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="loader.css">
+<style>
+    .profile > img { width: 45px; height: 45px; border-radius: 125px; }
+    .header { justify-content: space-evenly; height: 11vh; border-radius: 12px; margin: -20px 0 0 0; padding: 20px 0 0 0; }
+    .head > img { width: 45px; height: 45px; }
+    #coins > img { width: 30px; height: 30px; }
+    .head { gap: 2px; font-family: "Dancing Script", cursive; }
+    .head > p { font-size: 24px; }
+    #coins , .head { display: flex; align-items: center; justify-content: center; }
+    #coins { color: #fff; background: #045d6d; border-radius: 125px; padding: 4px 10px; }
+    .message { border-radius: 125px; display: flex; align-items: center; justify-content: space-around; margin: 10px 5px; padding: 10px; border: 1px solid #eee; }
+    .message > img { width: 50px; height: 50px; }
+    .message > p { font-size: 20px; text-transform: uppercase; font-family: "Open Sans", sans-serif; }
+    #slider { margin: 10px; display: flex; align-items: center; justify-content: center; flex-direction: column; }
+    #slider > img { width: 100%; border-radius: 12px; }
+    .match { display: flex; align-items: center; justify-content: space-around; }
+    .match > img { width: 40px; height: 40px; }
+    .win { display: flex; align-items: center; justify-content: center; flex-direction: column; padding: 10px; background: #25acc4; color: #fff; border-radius: 12px; }
+    .win > p { font-size: 14px; }
+    .win > b { font-size: 12px; }
+    .dot.active { color: red; }
+    .dot:hover { color: blue; }
+    .match { margin: 10px; padding: 10px; border: none; background: #eee; border-radius: 12px; cursor: pointer; }
+</style>
+<div id="loader" style="display: none;"><div class="loader"></div></div>
+<div class="header">
+    <a href="profile.html" class="profile">
+        <img src="https://img.freepik.com/free-vector/cute-astronaut-holding-planet-cartoon-vector-icon-illustration-science-technology-icon-isolated_138676-5237.jpg">
+    </a>
+    <div class="head" onclick="reload()">
+        <img src="https://i.ibb.co/Cs596xDf/logo.png">
+        <p>CrickSkill</p>
+    </div>
+    <a id="coins" href="coins.html"></a>
+</div>
+<div class="message">
+    <img src="https://i.ibb.co/NgtyZ01n/cricket.png">
+    <p>Iss IPL Hoga Asli Kamai</p>
+</div>
+<div id="slider"></div>
+<div id="matches"></div>
+<script>
+    const loader = document.getElementById("loader");
+    const username = localStorage.getItem("crick_local");
+    if (!username) {
+        window.location.href = "login.html";
+    }
+    loader.style.display = "flex";
+    fetch("https://script.google.com/macros/s/AKfycbwQo9txgAWYll4cgXzTExmnuNQOLELheu8MteYvDh5EA6r1aft4yicBS0RRw9JRoJQm0w/exec", {
+        method: "POST",
+        body: JSON.stringify({ username })
+    })
+    .then(response => response.json())
+    .then(data => {
+        loader.style.display = "none";
+        if (data.status === "Banned") {
+            alert("Your account is banned.");
+            localStorage.removeItem("crick_local");
+            window.location.href = "login.html";
+        } else {
+            const coins = Math.floor(data.coins);
+            document.getElementById("coins").innerHTML = "<img src='https://i.ibb.co/TDpyPYfN/money-bag.png'><p>" + coins + "</p>";
+        }
+    })
+    .catch(error => {
+        loader.style.display = "none";
+        console.log("Error: " + error);
+    });
+
+    let currentIndex = 0;
+    function updateSlider(images) {
+        const slider = document.getElementById("slider");
+        const imgElement = document.createElement("img");
+        imgElement.src = images[currentIndex].src;
+        imgElement.onclick = () => window.location.href = images[currentIndex].url;
+        slider.innerHTML = "";
+        slider.appendChild(imgElement);
+
+        const dots = images.map((_, index) => {
+            return `<span class="dot${index === currentIndex ? ' active' : ''}" onclick="setActive(${index})">●</span>`;
+        }).join("");
+        slider.innerHTML += `<div class="dots">${dots}</div>`;
+        currentIndex = (currentIndex + 1) % images.length;
+        setTimeout(() => updateSlider(images), 3000);
+    }
+
+    fetch("https://script.google.com/macros/s/AKfycbwQo9txgAWYll4cgXzTExmnuNQOLELheu8MteYvDh5EA6r1aft4yicBS0RRw9JRoJQm0w/exec?action=getSliderData")
+        .then(response => response.json())
+        .then(images => updateSlider(images));
+
+    fetch("https://script.google.com/macros/s/AKfycbwQo9txgAWYll4cgXzTExmnuNQOLELheu8MteYvDh5EA6r1aft4yicBS0RRw9JRoJQm0w/exec?action=getMatchesData")
+        .then(response => response.json())
+        .then(matches => {
+            const matchesDiv = document.getElementById("matches");
+            matches.forEach(match => {
+                const date = new Date(match.time);
+                const formattedDate = date.toLocaleString();
+                const matchCard = `<div class="match" onclick="selectMatch('${match.id}')">
+                    <img src="https://i.ibb.co/NdrJRc3Y/trophy.png">
+                    <p>${match.title}</p> 
+                    <div class="win">
+                        <p>Boost</p>
+                        <b>UPTO 2.9x</b>
+                    </div>
+                    <p style="display: none;"> ${formattedDate}</p>
+                    </div>`;
+                matchesDiv.innerHTML += matchCard;
+            });
+        });
+
+    function selectMatch(id) {
+        localStorage.setItem("match_id", id);
+        window.location.href = "details.html";
+    }
+    function reload(){
+        location.reload();
+    }
+</script>
